@@ -1,0 +1,14 @@
+.*
+.DS_Store
+*.swp
+*.csv
+*.egg-info
+Makefile
+Dockerfile
+Thumbs.db
+TODO.md
+docker-compose.yml
+logs/
+aws/
+shared/
+tmp/

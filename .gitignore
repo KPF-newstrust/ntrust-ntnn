@@ -1,0 +1,13 @@
+*.csv
+*.swp
+*.egg-info
+.env
+.DS_Store
+__pycache__
+Thumbs.db
+TODO.md
+.works/
+.pytest_cache/**
+logs/
+shared/
+tmp/

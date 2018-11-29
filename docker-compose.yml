@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  dev:
+    env_file: ".env"
+    restart: always
+    build: .
+    ports:
+      - 7090:7090
+    volumes:
+      - .:/src
+      - /tmp/ntnn:/tmp/ntnn
+    # override
+    working_dir: /src
