@@ -15,6 +15,7 @@ def to_filtered(x):
         s = re.sub(r'\([^\)]+\)', '', s)  # (*) 제거
         s = re.sub(r'\<[^\>]+\>', '', s)  # <*> 제거
         s = re.sub(r'[^\u0020-\u007E\uAC00-\uD7AF]', '', s)
+        s = re.sub(r'\\n', '\n', s)
         s = re.sub(r'\s{2,}', ' ', s)
         return s
     return np.vectorize(fn, otypes=[np.str])(x)
