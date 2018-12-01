@@ -11,13 +11,14 @@ from ntnn.word2vec import eval_w2v, StrCorpus
 # Parse args
 parser = argparse.ArgumentParser()
 parser.add_argument('--workdir', default='./.works/word2vec')
-parser.add_argument('--version', default=2)
+parser.add_argument('--version', default=1)
 parser.add_argument('--vocabsize', default=500000)
 parser.add_argument('--batchs', default=500)
 parser.add_argument('--epochs', default=3)
 parser.add_argument('--nrows', default=None, type=int)
 
 flag = parser.parse_args()
+chunksize = 5000
 
 
 def read_data():
@@ -29,7 +30,7 @@ def read_data():
         skipinitialspace=True,
         quoting=csv.QUOTE_MINIMAL,
         iterator=True,
-        chunksize=1000)
+        chunksize=chunksize)
 
 
 def preproc(x):
@@ -49,7 +50,7 @@ def build_and_train_model(train):
     window = 8
 
     corpus = StrCorpus(train)
-    logger = EpochLogger()
+    logger = EpochLogger(flag.epochs)
 
     return Word2Vec(
         corpus,
@@ -57,7 +58,7 @@ def build_and_train_model(train):
         window=window,
         min_count=3,  # 빈도 1개이상만 처리
         max_vocab_size=flag.vocabsize,
-        sg=0,  # 1: skipgram, 0: cbow
+        sg=1,  # 1: skipgram, 0: cbow
         hs=0,
         workers=1,
         batch_words=flag.batchs,

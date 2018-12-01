@@ -2,10 +2,16 @@ import re
 
 import numpy as np
 
+from functools import partial
 from gensim.models.callbacks import CallbackAny2Vec
 from konlpy.tag import Mecab
 from ntnn.constant import categories
 from ntnn.constant import token as T
+
+
+tagger = Mecab()
+
+split = partial(re.split, r'\s+')
 
 
 def vectorize_category(x, defaults=0, dtype=np.int8):
@@ -37,17 +43,14 @@ def vectorize_str(x, maxlen=100, dtype=np.int16):
             return [n - T.Symbol2[0] + T.Symbol2Id]
         return [T.UnkId]
 
-    def vec(s):
+    y = np.zeros((len(x), maxlen), dtype=dtype)
+    for i, s in enumerate(x):
         ids = []
         for c in s:
             ids += ch2ids(c)
-        return ids
 
-    y = np.zeros((len(x), maxlen), dtype=dtype)
-    for i, s in enumerate(x):
-        x_ = vec(s)
-        ln = min(maxlen, len(x_))
-        y[i, :ln] = x_[:ln]
+        ln = min(maxlen, len(ids))
+        y[i, :ln] = ids[:ln]
     return y
 
 
@@ -67,25 +70,21 @@ def to_filtered(x):
 
 
 def to_morphs(x, includes=None):
-    def convert(x):
-        tagger = Mecab()
+    y = np.full((len(x),), '', dtype=object)
+    yt = np.full((len(x),), '', dtype=object)
+
+    for i, s in enumerate(x):
         morphs, tags = [], []
-        for morph, tag in tagger.pos(x):
+        for morph, tag in tagger.pos(s):
             if includes and tag not in includes:
                 continue
 
             morphs.append(morph)
             tags.append(tag)
-        return ' '.join(morphs), ' '.join(tags)
 
-    morphs = np.full((len(x),), '', dtype=object)
-    tags = np.full((len(x),), '', dtype=object)
-    for i, s in enumerate(x):
-        morph, tag = convert(s)
-        morphs[i] = morph
-        tags[i] = tag
-
-    return morphs, tags
+        y[i] = ' '.join(morphs)
+        yt[i] = ' '.join(tags)
+    return y, yt
 
 
 def to_sentences(docs, includes=None):
@@ -99,35 +98,31 @@ def to_sentences(docs, includes=None):
         "'": "'’‘",
         "’": "'’‘",
         "‘": "'’‘"}
-    EOS = ['.', '!', '?', '\n', '\\n']
+    EOS = '.!?\n\\n'
 
-    def convert(doc):
-        sentences = []
-        sentence = ''
-        needed_brackets = []
+    y = []
+    for doc in docs:
+        sentence = []
+        needed_brackets = ''
         for ch in doc:
             if len(needed_brackets):
                 if ch in needed_brackets:
-                    needed_brackets = []
-                sentence += ch
+                    needed_brackets = ''
+                sentence.append(ch)
             else:
                 if ch in brackets:
-                    needed_brackets = [*brackets[ch]]
-                sentence += ch
+                    needed_brackets = brackets[ch]
+                sentence.append(ch)
 
                 if ch in EOS:
-                    if len(sentence.strip()):
-                        sentences.append(sentence)
-                    sentence = ''
+                    if len(sentence):
+                        y.append(''.join(sentence).strip())
+                    sentence = []
 
-        if len(sentence.strip()):
-            sentences.append(sentence)
-        return sentences
+        if len(sentence):
+            y.append(''.join(sentence).strip())
 
-    y = []
-    for s in docs:
-        y = y + convert(s)
-    return np.array(y)
+    return np.array(y, dtype=object)
 
 
 def to_tfidf(tokenizer, texts, seqlen=100, dtype=np.float32):
@@ -142,12 +137,13 @@ def to_tfidf(tokenizer, texts, seqlen=100, dtype=np.float32):
 
 
 class EpochLogger(CallbackAny2Vec):
-    def __init__(self):
-        self.epoch = 0
+    def __init__(self, total):
+        self.total = total
+        self.epoch = 1
 
     def on_epoch_begin(self, model):
         pass
 
     def on_epoch_end(self, model):
-        print(".")
+        print("Trained %d/%d" % (self.epoch, self.total))
         self.epoch += 1

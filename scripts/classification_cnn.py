@@ -16,23 +16,23 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--workdir', default='./.works/classification_cnn')
 parser.add_argument('--version', default=1)
 parser.add_argument('--seqlen', default=1000)
-parser.add_argument('--batchs', default=10)
-parser.add_argument('--epochs', default=10)
+parser.add_argument('--batchs', default=100)
+parser.add_argument('--epochs', default=3)
 parser.add_argument('--nrows', default=None, type=int)
 
 flag = parser.parse_args()
+chunksize = 5000
 
 
 def read_data():
-    return pd.read_csv(
+    data = pd.read_csv(
         os.path.join(flag.workdir, 'train.csv'),
         nrows=flag.nrows,
         header=0,
         delimiter='|',
         skipinitialspace=True,
-        quoting=csv.QUOTE_MINIMAL,
-        iterator=True,
-        chunksize=1000)
+        quoting=csv.QUOTE_MINIMAL)
+    return data.sample(frac=1)
 
 
 def preproc(data):
@@ -72,8 +72,6 @@ def save_model(model):
     print('model saved to %s' % outpath)
 
 
-data = read_data()
-
 model = build_model(
     token.Total, len(categories), seqlen=flag.seqlen)
 model.compile(
@@ -81,7 +79,10 @@ model.compile(
     loss='categorical_crossentropy',
     metrics=['accuracy'])
 
-for chunk in data:
+data = read_data()
+
+for i in range(0, len(data), chunksize):
+    chunk = data[i:i+chunksize]
     x, y, tx, ty = preproc(chunk)
 
     do_train(model, x, y)

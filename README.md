@@ -1,8 +1,18 @@
 
-```sh
-docker-compose run --rm dev bash
-```
+## Train Classification
 
 ```sh
-curl -i --data-urlencode contents@/tmp/news.txt http://172.22.0.2:7090/classify
+pipenv run python scripts/classification_cnn.py
+```
+
+## Train Word2Vec
+
+```sh
+pipenv run python scripts/word2vec.py
+```
+
+## Clustering
+
+```sh
+pipenv run python scripts/clustering.py
 ```

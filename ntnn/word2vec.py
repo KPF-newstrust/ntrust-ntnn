@@ -1,4 +1,7 @@
+import re
 import numpy as np
+
+from ntnn.util import split
 
 
 def eval_w2v(word2vec, positives, negatives=[]):
@@ -19,7 +22,7 @@ def to_w2v_texts(w2v, texts, tags):
     for i, (text, tag) in enumerate(zip(texts, tags)):
         valid_texts = []
         valid_tags = []
-        for w, t in zip(text.split(' '), tag.split(' ')):
+        for w, t in zip(split(text), split(tag)):
             if w in w2v.wv:
                 valid_texts.append(w)
                 valid_tags.append(t)
@@ -35,7 +38,7 @@ def text_to_tfidf(tokenizer, text):
     mat = tokenizer.texts_to_matrix([text], mode='tfidf')
     assert len(seqs) == 1
 
-    y = np.full((len(text.split(' ')),), 1.0, dtype=np.float32)
+    y = np.full((len(split(text)),), 1.0, dtype=np.float32)
     for i, s in enumerate(seqs[0]):
         y[i] = mat[0, s]
     return y
@@ -45,7 +48,7 @@ def to_word_vectors(w2v, texts, size=100, tfidfer=None, dtype=np.float32):
     y = np.zeros((len(texts), size), dtype=dtype)
 
     for i, text in enumerate(texts):
-        words = text.split(' ')
+        words = split(text)
         v = np.zeros((len(words), size), dtype=dtype)
 
         tfidf = (
@@ -53,21 +56,21 @@ def to_word_vectors(w2v, texts, size=100, tfidfer=None, dtype=np.float32):
             else np.full((len(words),), 1.0, dtype=np.float32))
 
         for j, w in enumerate(words):
-            if w in ['']: continue
+            if not len(w): continue
             v[j] = w2v.wv[w] * tfidf[j]
         y[i] = np.mean(v, axis=0)
     return y
 
 
 class StrCorpus(object):
-    def __init__(self, series, separator=' '):
+    def __init__(self, series, separator=r'\s+'):
         self.series = series
         self.separator = separator
 
     def __iter__(self):
         for i, doc in enumerate(self.series):
             assert type(doc) is str
-            yield doc.split(self.separator)
+            yield re.split(self.separator, doc)
 
     def __len__(self):
         return len(self.series)
